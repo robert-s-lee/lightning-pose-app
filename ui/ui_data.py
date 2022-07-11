@@ -27,5 +27,14 @@ def run(root_dir=".",sub_dir=".",dir_name="unlabeled_videos"):
     if video_file:
       st.video(video_file["abs_path"], format="video/mp4", start_time=0)
 
+    uploaded_files = st.file_uploader("Upload MP4", type=["mp4"], accept_multiple_files=True )
+    for uploaded_file in uploaded_files:
+     st.write("filename:", uploaded_file.name)
+     write_file_name = os.path.join(dir,"unlabeled_videos",uploaded_file.name)
+     st.write("dir:", write_file_name)
+     write_file = open(write_file_name, "wb")
+     write_file.write(uploaded_file.read())
+     write_file.close()
+
 if __name__ == "__main__":
   run(root_dir="../lightning_pose")

@@ -2,11 +2,14 @@ import os
 import logging
 from datetime import datetime
 
-import streamlit as st
-from streamlit_ace import st_ace
+import hydra
+import omegaconf
 
-# NOTE: AttributeError: 'Path' object has no attribute '_origin'
-#from lightning.storage.path import Path
+import streamlit as st
+from lightning_app.utilities.state import AppState
+from lai_components.hydra_utils import read_hydra_config_from_file
+import ui.hydra_run_out
+
 from pathlib import Path
 
 global key_hydra_config_name
@@ -18,12 +21,17 @@ key_hydra_config_name="hydra_config_name" # "--config_name={st.state[key_hydra_c
 key_hydra_config_dir="hydra_config_dir"   # "--config-dir={st.state[key_hydra_config_dir]}")
 key_hydra_config_file="hydra_config_file"
 key_hydra_config_file_edit="hydra_config_file_edit"
-key_hydra_run_out="hydra_run_out"
 
-def get_relpath_name(x):
-  return(x[0])
-def get_abspath_name(x):
-  return(x[1])
+input_params=[ "data.data_dir", "data.csv_file", "data.video_dir"]
+output_params=["hydra.run.out"]
+control_params=["model.losses_to_use", "training.max_epochs", "training.num_workers" ]
+auto_params=["eval.hydra_paths", "eval.test_videos_directory", "eval.saved_vid_preds_dir" ]
+
+def hydra_config_name_selected(context=st) -> str:
+  if key_hydra_config_name in st.session_state and not(st.session_state[key_hydra_config_name] is None):
+    return(f"{st.session_state[key_hydra_config_name]}")
+  else:
+    return("")  
 
 def hydra_config_dir_selected(context=st) -> str:
   try:
@@ -33,14 +41,14 @@ def hydra_config_dir_selected(context=st) -> str:
   return(config_dir)
 
 def get_hydra_config():
-  """return --config_name --config_dir "+hydra.run.out as dict"""
+  """return --config_name --config_dir "hydra.run.out as dict"""
   ret = {}
   if key_hydra_config_name in st.session_state and not(st.session_state[key_hydra_config_name] is None) and st.session_state[key_hydra_config_name] != "":
     ret["--config_name"]="'%s'" % st.session_state[key_hydra_config_name]
   if not (hydra_config_dir_selected() is None):
     ret["--config_dir"]="'%s'" % hydra_config_dir_selected()['rel_dir']
   if key_hydra_run_out in st.session_state and not(st.session_state[key_hydra_config_name] is None) and st.session_state[key_hydra_config_name] != "":
-    ret["+hydra.run.out"]="'%s'" % st.session_state[key_hydra_run_out]
+    ret["hydra.run.out"]="'%s'" % st.session_state[key_hydra_run_out]
   return(ret)  
 
 def get_hydra_config_name():
@@ -55,16 +63,16 @@ def get_hydra_dir_name():
   else:
     return("")
 
-def set_hydra_run_out(hydra_run_out=None, context=st):
-  """set +hydra.run.out=outputs/YY-MM-DD/HH-MM-SS"""
-  if hydra_run_out is None:
-    if key_hydra_run_out in st.session_state:
-      hydra_run_out = st.session_state[key_hydra_run_out]
-    else:  
-      hydra_run_out = datetime.today().strftime('outputs/%Y-%m-%d/%H-%M-%S')    
-  x = context.text_input("hydra run out dir", value=hydra_run_out, placeholder="outputs/YY-MM-DD/HH-MM-SS", key=key_hydra_run_out)
-  if x=="":
-    context.error(f"hydra run out dir cannot be empty")
+def get_hydra_config_from_ui():
+  config_dir_selected = os.path.join(os.getcwd(),hydra_config_dir_selected(context=st)['abs_dir'])
+  print(config_dir_selected)
+  config_name_selected = hydra_config_name_selected(context=st)
+  print("hydra_config_dir_selected", config_dir_selected)
+  print("hydra_config_name_selected",config_name_selected )
+  cfg_dict, cfg_list = read_hydra_config_from_file(config_dir=config_dir_selected, config_name=config_name_selected)
+  return(cfg_dict, cfg_list)  
+
+
 
 def set_hydra_config_name(config_name="config.yaml", context=st):
   """set --config_name=config.yaml"""
@@ -148,15 +156,20 @@ def edit_hydra_config_file(language="yaml", context=st):
       st.session_state[key_hydra_config_file_edit]={}
     st.session_state[key_hydra_config_file_edit][filename] = content_new
 
-def run(root_dir=".", hydra_run_out=None, config_name="config.yaml", config_dir=".", context=st):
-  set_hydra_run_out(hydra_run_out=hydra_run_out, context=context)
-  set_hydra_config_name(config_name=config_name, context=context)
-  set_hydra_config_dir(root_dir=root_dir, config_dir=config_dir, context=context)
-  set_hydra_config_file(context=context)
-  edit_hydra_config_file(context=context)
-  return(get_hydra_config())
+
+def run(st, state:AppState = None):
+  ui.hydra_run_out.run(st=st, state=state)
+  set_hydra_config_name(config_name=config_name, context=st)
+  set_hydra_config_dir(root_dir=root_dir, config_dir=config_dir, context=st)
+  cfg_dict, cfg_list = get_hydra_config_from_ui()
+  st.write(cfg_dict)
+  st.write(cfg_list)
+  return(get_hydra_config(),cfg_dict, cfg_list)
   
 # only for testing streamlit run hydra_ui.py
+# if run from pages, the will also run
 if __name__ == "__main__":
-  x = run(root_dir="../lightning_pose")
-  print(x)
+  print("os.path.realpath(__file__)", os.path.realpath(__file__))
+  print("os.path.dirname(__file__)", os.path.dirname(__file__))
+
+  x = run(root_dir="../lightning-pose")

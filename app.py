@@ -163,8 +163,12 @@ eval.video_file_to_plot=./lightning-pose/toy_datasets/toymouseRunningData/unlabe
             # label-studio/label_studio/core/settings/label_studio.py
             # label-studio/label_studio/core/settings/base.py
             # label-studio/label_studio/core/middleware.py
+            # https://docs.djangoproject.com/en/4.0/ref/clickjacking/
+            # export CSRF_COOKIE_SAMESITE=None
+            # export SESSION_COOKIE_SAMESITE=None
+            # export LABEL_STUDIO_X_FRAME_OPTIONS=sameorigin # allowall, allow-from *, deny
             'USE_ENFORCE_CSRF_CHECKS':'false',
-            'LABEL_STUDIO_X_FRAME_OPTIONS':'allow-from *', 
+            'LABEL_STUDIO_X_FRAME_OPTIONS':'sameorigin', 
             'LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED':'true', 
             'LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT':os.path.abspath(os.getcwd())
             },

@@ -1,7 +1,11 @@
 import streamlit as st
 import args_utils
 from datetime import datetime
-import sh
+
+input_params=[ "data.data_dir", "data.csv_file", "data.video_dir"]
+output_params=["hydra.run.out"]
+control_params=["model.losses_to_use", "training.max_epochs", "training.num_workers" ]
+auto_params=["eval.hydra_paths", "eval.test_videos_directory", "eval.saved_vid_preds_dir" ]
 
 def set_script_args(*args, **kwargs):
   if 'key' in kwargs and kwargs['key'] == 'train_args':

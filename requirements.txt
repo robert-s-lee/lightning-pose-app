@@ -1,6 +1,8 @@
 # app UI 
-streamlit
+# 1.10.0 has multiplepage feature
+streamlit>=1.10.0
 streamlit_autorefresh
 watchdog
 streamlit-ace
 virtualenv
+hydra-core
