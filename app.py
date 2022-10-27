@@ -30,6 +30,9 @@ from lai_components.lpa_utils import output_with_video_prediction
 import logging
 import time
 
+# nginx conf template to remove x-frame-options
+conf_file = "nginx-8080.conf"
+new_conf_file = "nginx-new-8080.conf"
 
 # hydra.run.dir
 #   outputs/YY-MM-DD/HH-MM-SS
@@ -128,30 +131,31 @@ eval.video_file_to_plot=./lightning-pose/toy_datasets/toymouseRunningData/unlabe
         self.my_work.reset_last_args()
 
     def start_label_studio(self):
-        """run label studio migrate, then runserver"""
-        # Install for local development
-        # https://github.com/heartexlabs/label-studio#install-for-local-development
-        self.my_label_studio.run(
-          f"python label_studio/manage.py migrate", 
-          venv_name=label_studio_venv,
-          cwd=label_studio_dir)
-        self.my_label_studio.run(
-          "python label_studio/manage.py runserver {host}:{port}", 
-          venv_name=label_studio_venv,
-          wait_for_exit=False,    
-          env={
-            # label-studio/label_studio/core/settings/label_studio.py
-            # label-studio/label_studio/core/settings/base.py
-            # label-studio/label_studio/core/middleware.py
-            'USE_ENFORCE_CSRF_CHECKS':'false',
-            'LABEL_STUDIO_X_FRAME_OPTIONS':'sameorgin', 
-            'LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED':'true', 
-            'LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT':os.path.abspath(os.getcwd())
-            },
-          cwd=label_studio_dir)
 
-        # TODO: use this once https://github.com/heartexlabs/label-studio/issues/2596 is resolved
-        #self.subprocess_call(f"label-studio start --port={self.port} --internal-host={self.host}")
+        """run label studio migrate, then runserver"""
+         # create config file 
+        self.my_label_studio.run(
+            f"sed -e s/__port__/{self.label_studio.port}/g -e s/__host__/{self.label_studio.host}/ nginx-8080.conf > ~/{new_conf_file}",
+            wait_for_exit=True,    
+        )
+
+        # run reverse proxy on external port and remove x-frame-options
+        self.my_label_studio.run(
+            f"nginx -c ~/{new_conf_file}",
+            wait_for_exit=True,    
+        )
+
+        # start label-studio on the default port 8080
+        self.my_label_studio.run(
+            "label-studio --internal-host $host", 
+            venv_name=label_studio_venv,
+            wait_for_exit=False,    
+            env={
+                'USE_ENFORCE_CSRF_CHECKS':'false',
+                'LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED':'true', 
+                'LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT':os.path.abspath(os.getcwd())
+                },
+            )
 
     def start_tensorboard(self):
       """run tensorboard"""

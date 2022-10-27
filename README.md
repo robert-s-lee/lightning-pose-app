@@ -88,13 +88,17 @@ git clone https://github.com/paninski-lab/tracking-diagnostics
 ```
 
 - setup local environment to mirror cloud
+
+So why `virtualenv` in addition to `conda`? `pip install lightning` and other python packages can conflict.
+The method chosen here installs the lighting environment on conda.
+The app itself uses `virtualenv` to install the python packages to isolate the python package conflicts.
+
 ```bash
 virtualenv ~/venv-tensorboard 
 source ~/venv-tensorboard/bin/activate; which python; python -m pip install tensorflow tensorboard; deactivate
 
 virtualenv ~/venv-label-studio 
-git clone https://github.com/robert-s-lee/label-studio; cd label-studio; git checkout x-frame-options; cd ..
-source ~/venv-label-studio/bin/activate; cd label-studio; which python; python -m pip install -e .; cd ..; deactivate
+source ~/venv-label-studio/bin/activate; which python; python -m pip install label-studio; deactivate
 
 # on laptop without GPU
 virtualenv ~/venv-lightning-pose
@@ -113,7 +117,7 @@ source ~/venv-tensorboard/bin/activate; tensorboard --logdir .; deactivate
 ```
 - test label-studio
 ```bash
-source ~/venv-label-studio/bin/activate; cd label-studio; python label_studio/manage.py migrate; python label_studio/manage.py runserver; cd ..; deactivate
+source ~/venv-label-studio/bin/activate; label-studio; deactivate
 ```
 - test fiftyone
 ```
@@ -139,4 +143,20 @@ Subprocess ['/opt/miniconda3/envs/lai/lib/python3.8/site-packages/fiftyone/db/bi
 ### On GPU
 ```
 lightning run app app.py --cloud --name lightning-pose --env NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+```
+
+# Troubleshooting 
+
+## Label Studio 
+
+On Mac
+
+```bash
+rm -rf ~/Library/Application\ Support/label-studio  
+```
+
+On Linux
+
+```bash
+rm -rf ~/.local
 ```
